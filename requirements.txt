@@ -1,0 +1,7 @@
+langchain-deepseek
+langchain_core
+dotenv
+boto3
+aiohttp
+moviepy==1.0.3
+
