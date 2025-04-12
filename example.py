@@ -10,7 +10,7 @@ async def main():
     video_creator = VideoCreator()
     
     # Topic to generate content for
-    topic = "Nikhil Kamath journey"
+    topic = "hony singh"
     
     # Generate script
     print(f"Generating script about: {topic}")

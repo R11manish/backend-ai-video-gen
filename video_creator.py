@@ -1,6 +1,6 @@
 import os
 import time
-from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
+from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips, TextClip, CompositeVideoClip, ColorClip
 import imageio
 
 # Install required backends for imageio
@@ -38,7 +38,7 @@ class VideoCreator:
             import subprocess
             subprocess.check_call(["pip", "install", "av"])
     
-    def create_video(self, image_paths, audio_path, output_path="./videos", fps=24):
+    def create_video(self, image_paths, audio_path, output_path="./videos", fps=24, subtitles=None, aspect_ratio="9:16"):
         """
         Create a video from images and audio
         
@@ -47,6 +47,8 @@ class VideoCreator:
             audio_path (str): Path to audio file
             output_path (str): Directory to save the output video
             fps (int): Frames per second for the video
+            subtitles (list): List of subtitle dictionaries with 'text', 'start', 'end' keys
+            aspect_ratio (str): Aspect ratio of the video (default: "9:16" for vertical video)
             
         Returns:
             str: Path to the output video file
@@ -76,13 +78,66 @@ class VideoCreator:
         # Calculate duration for each image
         image_duration = audio_duration / len(valid_image_paths)
         
+        # Set dimensions based on aspect ratio
+        if aspect_ratio == "9:16":  # Vertical video
+            width, height = 720, 1280  # 720x1280 for vertical 9:16
+        else:  # Default to 16:9
+            width, height = 1280, 720  # 1280x720 for horizontal 16:9
+        
         # Create image clips
         image_clips = []
         for img_path in valid_image_paths:
             try:
-                clip = ImageClip(img_path).set_duration(image_duration)
-                # Resize to 720p (1280x720) while maintaining aspect ratio
-                clip = clip.resize(height=720)
+                img_clip = ImageClip(img_path).set_duration(image_duration)
+                
+                # Get original dimensions
+                original_w, original_h = img_clip.size
+                
+                # Create a white background with target dimensions
+                background = ColorClip(size=(width, height), color=(255, 255, 255)).set_duration(image_duration)
+                
+                # Resize image while maintaining aspect ratio
+                if aspect_ratio == "9:16":  # Vertical video
+                    orig_aspect = original_w / original_h
+                    target_aspect = 9 / 16
+                    
+                    # Calculate new dimensions to fit within the frame while preserving aspect ratio
+                    if orig_aspect > target_aspect:  # Image is wider than 9:16
+                        # Scale based on width
+                        new_width = width
+                        new_height = int(original_h * (new_width / original_w))
+                    else:  # Image is taller or same as 9:16
+                        # Scale based on height
+                        new_height = height
+                        new_width = int(original_w * (new_height / original_h))
+                else:  # 16:9 horizontal video
+                    orig_aspect = original_w / original_h
+                    target_aspect = 16 / 9
+                    
+                    # Calculate new dimensions to fit within the frame while preserving aspect ratio
+                    if orig_aspect > target_aspect:  # Image is wider than 16:9
+                        # Scale based on width
+                        new_width = width
+                        new_height = int(original_h * (new_width / original_w))
+                    else:  # Image is taller or same as 16:9
+                        # Scale based on height
+                        new_height = height
+                        new_width = int(original_w * (new_height / original_h))
+                
+                # Make sure we don't exceed the frame dimensions
+                new_width = min(new_width, width)
+                new_height = min(new_height, height)
+                
+                # Resize the image clip
+                resized_clip = img_clip.resize((new_width, new_height))
+                
+                # Position the resized image at the center of the background
+                img_pos = ('center', 'center')
+                
+                # Create a composite clip with white background and centered image
+                clip = CompositeVideoClip([background, resized_clip.set_position(img_pos)], 
+                                          size=(width, height))
+                
                 image_clips.append(clip)
                 print(f"Successfully loaded image: {img_path}")
             except Exception as e:
@@ -99,6 +154,34 @@ class VideoCreator:
         
         # Set the duration to match the audio
         video_clip = video_clip.set_duration(audio_duration)
+        
+        # Add subtitles if provided
+        if subtitles:
+            subtitle_clips = []
+            
+            for subtitle in subtitles:
+                text = subtitle['text']
+                start_time = subtitle['start']
+                end_time = subtitle['end']
+                duration = end_time - start_time
+                
+                # Create subtitle clip
+                txt_clip = TextClip(
+                    text, 
+                    fontsize=30, 
+                    color='white',
+                    bg_color='black',
+                    font='Arial',
+                    method='caption',
+                    align='center',
+                    size=(video_clip.w * 0.9, None)  # 90% of video width
+                ).set_position(('center', 'bottom')).set_duration(duration).set_start(start_time)
+                
+                subtitle_clips.append(txt_clip)
+            
+            # Add all subtitle clips to the video
+            if subtitle_clips:
+                video_clip = CompositeVideoClip([video_clip] + subtitle_clips)
         
         # Generate output filename
         timestamp = int(time.time())
