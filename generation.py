@@ -7,7 +7,9 @@ from serpapi.google_search import GoogleSearch
 from langchain_deepseek import ChatDeepSeek
 from langchain_core.prompts import ChatPromptTemplate
 
+
 load_dotenv()
+
 
 
 class VideoGeneration:
@@ -55,7 +57,7 @@ class VideoGeneration:
 
     def download_image(self, image_url: str, save_path: str = None, filename: str = None):
         if save_path is None:
-            save_path = "./images"
+            save_path = "/tmp/images"
             
         os.makedirs(save_path, exist_ok=True)
         
@@ -82,7 +84,7 @@ class VideoGeneration:
         import aiohttp
         
         if save_path is None:
-            save_path = "./images"
+            save_path = "/tmp/images"
             
         os.makedirs(save_path, exist_ok=True)
         
@@ -106,6 +108,9 @@ class VideoGeneration:
     
     async def download_all_images(self, image_list, save_path=None):
         """Download all images in the list in parallel"""
+        if save_path is None:
+            save_path = "/tmp/images"
+            
         download_tasks = []
         for i, image in enumerate(image_list[:20]):
             image_url = image.get("original")
@@ -120,22 +125,3 @@ class VideoGeneration:
         return await asyncio.gather(*download_tasks, return_exceptions=True)
 
 
-if __name__ == "__main__":
-    video = VideoGeneration()
-    
-    async def main():
-        paragraph = await video.script("ronaldo")
-        images = video.search_images(num_results=1) 
-        if images and len(images) > 0:
-            # Download all images in parallel
-            downloaded_paths = await video.download_all_images(images)
-            print(f"Downloaded {len([p for p in downloaded_paths if not isinstance(p, Exception)])} images successfully")
-            for i, result in enumerate(downloaded_paths):
-                if isinstance(result, Exception):
-                    print(f"Error downloading image {i}: {result}")
-                else:
-                    print(f"Image {i} saved to: {result}")
-        else:
-            print("No images found.")
-    
-    asyncio.run(main())

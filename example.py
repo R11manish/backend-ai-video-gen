@@ -1,17 +1,20 @@
 import asyncio
 import random
+import os
 from generation import VideoGeneration
 from speech import SpeechGenerator
 from video_creator import VideoCreator
+from s3_upload import S3Upload
 
 async def main():
     # Initialize all classes
     video_gen = VideoGeneration()
     speech_gen = SpeechGenerator()
     video_creator = VideoCreator()
+    s3_upload = S3Upload()
     
     # Topic to generate content for
-    topic = "sachin tedkukar"
+    topic = "hardik panday journey"
     
     # Generate script
     print(f"Generating script about: {topic}")
@@ -58,6 +61,14 @@ async def main():
             audio_path=audio_path
         )
         print(f"Video created successfully and saved to: {video_path}")
+        
+        # Upload video to S3
+        try:
+            s3_key = f"videos/{os.path.basename(video_path)}"
+            s3_url = s3_upload.upload_file(video_path, s3_key)
+            print(f"Video uploaded successfully to: {s3_url}")
+        except Exception as e:
+            print(f"S3 upload error: {e}")
     except Exception as e:
         print(f"Video creation error: {e}")
         return

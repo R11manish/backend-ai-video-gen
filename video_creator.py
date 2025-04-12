@@ -5,6 +5,21 @@ import imageio
 import cv2
 import av
 import PIL
+from moviepy.config import change_settings
+import tempfile
+
+# Set MoviePy environment variables
+os.environ['IMAGEIO_FFMPEG_EXE'] = 'ffmpeg'
+os.environ['MOVIEPY_TEMP_DIR'] = '/tmp/moviepy_temp'
+
+# Set temp directory for MoviePy - Lambda-compatible path
+temp_dir = "/tmp/moviepy_temp"
+os.makedirs(temp_dir, exist_ok=True)
+change_settings({
+    "TEMP_DIR": temp_dir,
+    "TEMP_AUDIO_FOLDER": temp_dir,  # This is important
+    "FFMPEG_BINARY": "ffmpeg"
+})
 
 # Fix for PIL.Image.ANTIALIAS deprecation
 if hasattr(PIL.Image, 'Resampling'):  # Pillow >= 9.0.0
@@ -17,11 +32,9 @@ PIL.Image.ANTIALIAS = ANTIALIAS
 
 class VideoCreator:
     def __init__(self):
-        os.makedirs("./videos", exist_ok=True)
-        
-
+        os.makedirs("/tmp/videos", exist_ok=True)
     
-    def create_video(self, image_paths, audio_path, output_path="./videos", fps=24, subtitles=None, aspect_ratio="9:16"):
+    def create_video(self, image_paths, audio_path, output_path="/tmp/videos", fps=24, subtitles=None, aspect_ratio="9:16"):
       
         # Create output directory if it doesn't exist
         os.makedirs(output_path, exist_ok=True)
@@ -137,11 +150,15 @@ class VideoCreator:
             codec='libx264', 
             audio_codec='aac',
             threads=4,  # Use multiple threads for faster processing
-            preset='medium'  # Balances encoding speed and quality
+            preset='medium',
+            temp_audiofile=os.path.join(temp_dir, f"temp_audio_{timestamp}.m4a"),
+            verbose=False,
+            logger=None,
+            remove_temp=True
         )
         
-        # Close clips to free resources
+        
         audio_clip.close()
         video_clip.close()
         
-        return output_file 
+        return output_file
