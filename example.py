@@ -1,4 +1,5 @@
 import asyncio
+import random
 from generation import VideoGeneration
 from speech import SpeechGenerator
 from video_creator import VideoCreator
@@ -10,7 +11,7 @@ async def main():
     video_creator = VideoCreator()
     
     # Topic to generate content for
-    topic = "hony singh"
+    topic = "sachin tedkukar"
     
     # Generate script
     print(f"Generating script about: {topic}")
@@ -19,7 +20,7 @@ async def main():
     
     # Search and download images
     print("Searching for images...")
-    images = video_gen.search_images(num_results=12)
+    images = video_gen.search_images(num_results=15)
     if images and len(images) > 0:
         print(f"Found {len(images)} images, downloading in parallel...")
         downloaded_paths = await video_gen.download_all_images(images)
@@ -32,9 +33,15 @@ async def main():
     # Generate speech from the script
     try:
         print("Generating speech from script...")
+        voices = speech_gen.list_available_voices(language_code="en-US")
+        
+        # Randomly select one of the available voices
+        random_voice = random.choice(voices)
+        print(f"Randomly selected voice: {random_voice}")
+
         audio_path = await speech_gen.generate_speech_async(
             text=script.content,
-            voice_id="Matthew",  # You can try different voices
+            voice_id=random_voice,  # Use randomly selected voice
             output_format="mp3"
         )
         print(f"Speech generated and saved to: {audio_path}")

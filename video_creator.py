@@ -2,15 +2,11 @@ import os
 import time
 from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips, TextClip, CompositeVideoClip, ColorClip
 import imageio
-
-# Install required backends for imageio
-try:
-    imageio.plugins.ffmpeg.download()
-except:
-    pass
+import cv2
+import av
+import PIL
 
 # Fix for PIL.Image.ANTIALIAS deprecation
-import PIL
 if hasattr(PIL.Image, 'Resampling'):  # Pillow >= 9.0.0
     ANTIALIAS = PIL.Image.Resampling.LANCZOS
 else:  # Pillow < 9.0.0
@@ -23,36 +19,10 @@ class VideoCreator:
     def __init__(self):
         os.makedirs("./videos", exist_ok=True)
         
-        # Ensure imageio has the necessary backends
-        try:
-            import cv2
-        except ImportError:
-            print("Installing opencv backend for imageio...")
-            import subprocess
-            subprocess.check_call(["pip", "install", "opencv-python"])
-        
-        try:
-            import av
-        except ImportError:
-            print("Installing pyav backend for imageio...")
-            import subprocess
-            subprocess.check_call(["pip", "install", "av"])
+
     
     def create_video(self, image_paths, audio_path, output_path="./videos", fps=24, subtitles=None, aspect_ratio="9:16"):
-        """
-        Create a video from images and audio
-        
-        Args:
-            image_paths (list): List of paths to image files
-            audio_path (str): Path to audio file
-            output_path (str): Directory to save the output video
-            fps (int): Frames per second for the video
-            subtitles (list): List of subtitle dictionaries with 'text', 'start', 'end' keys
-            aspect_ratio (str): Aspect ratio of the video (default: "9:16" for vertical video)
-            
-        Returns:
-            str: Path to the output video file
-        """
+      
         # Create output directory if it doesn't exist
         os.makedirs(output_path, exist_ok=True)
         
@@ -155,33 +125,6 @@ class VideoCreator:
         # Set the duration to match the audio
         video_clip = video_clip.set_duration(audio_duration)
         
-        # Add subtitles if provided
-        if subtitles:
-            subtitle_clips = []
-            
-            for subtitle in subtitles:
-                text = subtitle['text']
-                start_time = subtitle['start']
-                end_time = subtitle['end']
-                duration = end_time - start_time
-                
-                # Create subtitle clip
-                txt_clip = TextClip(
-                    text, 
-                    fontsize=30, 
-                    color='white',
-                    bg_color='black',
-                    font='Arial',
-                    method='caption',
-                    align='center',
-                    size=(video_clip.w * 0.9, None)  # 90% of video width
-                ).set_position(('center', 'bottom')).set_duration(duration).set_start(start_time)
-                
-                subtitle_clips.append(txt_clip)
-            
-            # Add all subtitle clips to the video
-            if subtitle_clips:
-                video_clip = CompositeVideoClip([video_clip] + subtitle_clips)
         
         # Generate output filename
         timestamp = int(time.time())

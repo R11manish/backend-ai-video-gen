@@ -107,7 +107,7 @@ class VideoGeneration:
     async def download_all_images(self, image_list, save_path=None):
         """Download all images in the list in parallel"""
         download_tasks = []
-        for i, image in enumerate(image_list[:12]):
+        for i, image in enumerate(image_list[:20]):
             image_url = image.get("original")
             if image_url:
                 task = self.download_image_async(

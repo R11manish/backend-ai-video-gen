@@ -82,7 +82,7 @@ if __name__ == "__main__":
     try:
         # List available voices
         voices = generator.list_available_voices(language_code="en-US")
-        print(f"Available voices: {voices[:5]}...")
+        print(f"Available voices: {voices[:10]}...")
         
         # Generate speech
         # output_file = generator.generate_speech(
