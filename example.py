@@ -14,7 +14,7 @@ async def main():
     s3_upload = S3Upload()
     
     # Topic to generate content for
-    topic = "hardik panday journey"
+    topic = "anushka sharama  journey"
     
     # Generate script
     print(f"Generating script about: {topic}")

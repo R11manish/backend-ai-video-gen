@@ -3,10 +3,7 @@ langchain_core
 dotenv
 boto3
 aiohttp
-moviepy==1.0.3
-imageio
-imageio-ffmpeg
-opencv-python
-av
 pillow
+opencv-python-headless
+google-search-results
 
