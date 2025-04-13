@@ -7,6 +7,7 @@ from generation import VideoGeneration
 from speech import SpeechGenerator
 from video_creator import VideoCreator
 from s3_upload import S3Upload
+from db_manager import VideoDatabase
 import traceback
 import sys
 import logging
@@ -24,6 +25,7 @@ async def process_request(topic):
     speech_gen = SpeechGenerator()
     video_creator = VideoCreator()
     s3_upload = S3Upload()
+    video_db = VideoDatabase()
     
     try:
         # Generate script
@@ -81,8 +83,19 @@ async def process_request(topic):
                 s3_key = f"videos/{os.path.basename(video_path)}"
                 s3_url = s3_upload.upload_file(video_path, s3_key)
                 logger.info(f"Video uploaded successfully to: {s3_url}")
-                cleanup_temp_files(temp_files)
-                return {"status": "success", "video_url": s3_url}
+                
+                # Save video information to DynamoDB
+                try:
+                    video_id = video_db.save_video(title=topic, url=s3_url)
+                    logger.info(f"Video information saved to DynamoDB with ID: {video_id}")
+                    cleanup_temp_files(temp_files)
+                    return {"status": "success", "video_url": s3_url, "video_id": video_id}
+                except Exception as e:
+                    error_msg = f"DynamoDB error: {e}"
+                    logger.error(error_msg)
+                    # Continue even if DynamoDB save fails, as video is already uploaded
+                    cleanup_temp_files(temp_files)
+                    return {"status": "partial_success", "video_url": s3_url, "message": error_msg}
             except Exception as e:
                 error_msg = f"S3 upload error: {e}"
                 logger.error(error_msg)
