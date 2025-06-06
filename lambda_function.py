@@ -17,10 +17,8 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 async def process_request(topic):
-    # Keep track of temporary files for cleanup
     temp_files = []
     
-    # Initialize all classes
     video_gen = VideoGeneration()
     speech_gen = SpeechGenerator()
     video_creator = VideoCreator()
@@ -75,16 +73,14 @@ async def process_request(topic):
                 image_paths=successful_images,
                 audio_path=audio_path
             )
-            temp_files.append(video_path)  # Add to cleanup list
+            temp_files.append(video_path) 
             logger.info(f"Video created successfully and saved to: {video_path}")
             
-            # Upload video to S3
             try:
                 s3_key = f"videos/{os.path.basename(video_path)}"
                 s3_url = s3_upload.upload_file(video_path, s3_key)
                 logger.info(f"Video uploaded successfully to: {s3_url}")
                 
-                # Save video information to DynamoDB
                 try:
                     video_id = video_db.save_video(title=topic, url=s3_url)
                     logger.info(f"Video information saved to DynamoDB with ID: {video_id}")
@@ -93,7 +89,6 @@ async def process_request(topic):
                 except Exception as e:
                     error_msg = f"DynamoDB error: {e}"
                     logger.error(error_msg)
-                    # Continue even if DynamoDB save fails, as video is already uploaded
                     cleanup_temp_files(temp_files)
                     return {"status": "partial_success", "video_url": s3_url, "message": error_msg}
             except Exception as e:
@@ -123,7 +118,6 @@ def cleanup_temp_files(file_paths):
             except Exception as e:
                 logger.error(f"Failed to remove file {path}: {e}")
     
-    # Clean up temp directories if they exist
     temp_dirs = ["/tmp/images", "/tmp/audio", "/tmp/videos", "/tmp/temp", "/tmp/images_resized"]
     for dir_path in temp_dirs:
         if os.path.exists(dir_path):
@@ -134,20 +128,17 @@ def cleanup_temp_files(file_paths):
                 logger.error(f"Failed to remove directory {dir_path}: {e}")
                 
 def lambda_handler(event, context):
-    # Start with logging the event received
     logger.info(f"EVENT RECEIVED: {json.dumps(event)}")
     
     try:
-        # Log start of processing
         logger.info("PROCESS: Starting to process the event")
         
-        # Extract the message from SQS event structure
         if 'Records' in event and len(event['Records']) > 0:
             logger.info("PROCESS: Found Records in event")
             message_body = event['Records'][0]['body']
             logger.info(f"PROCESS: Raw message body: {message_body}")
             
-            # Parse the JSON message body if it's a string
+           
             if isinstance(message_body, str):
                 try:
                     message_body = json.loads(message_body)
@@ -156,16 +147,13 @@ def lambda_handler(event, context):
                     logger.error(f"ERROR: Failed to parse message body as JSON: {str(e)}")
                     raise
             
-            # Extract the topic
             topic = message_body.get('topic')
             logger.info(f"PROCESS: Extracted topic: {topic}")
             
-            # Log all environment variables (redacted sensitive info)
             env_vars = {k: v if 'key' not in k.lower() and 'secret' not in k.lower() and 'password' not in k.lower() else '[REDACTED]' 
                        for k, v in os.environ.items()}
             logger.info(f"ENV VARS: {json.dumps(env_vars)}")
             
-            # Verify ffmpeg installation before proceeding
             try:
                 import subprocess
                 ffmpeg_output = subprocess.check_output(['ffmpeg', '-version'], stderr=subprocess.STDOUT).decode('utf-8')
@@ -175,7 +163,6 @@ def lambda_handler(event, context):
                 logger.error(traceback.format_exc())
                 raise RuntimeError("ffmpeg verification failed")
             
-            # Run the async process_request function using asyncio
             try:
                 logger.info(f"PROCESS: Starting async process for topic: {topic}")
                 

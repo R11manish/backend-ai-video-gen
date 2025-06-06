@@ -7,21 +7,17 @@ from video_creator import VideoCreator
 from s3_upload import S3Upload
 
 async def main():
-    # Initialize all classes
     video_gen = VideoGeneration()
     speech_gen = SpeechGenerator()
     video_creator = VideoCreator()
     s3_upload = S3Upload()
     
-    # Topic to generate content for
     topic = "anushka sharama  journey"
     
-    # Generate script
     print(f"Generating script about: {topic}")
     script = await video_gen.script(topic)
     print(f"Script generated: {script}")
     
-    # Search and download images
     print("Searching for images...")
     images = video_gen.search_images(num_results=15)
     if images and len(images) > 0:
@@ -33,18 +29,16 @@ async def main():
         print("No images found.")
         return
     
-    # Generate speech from the script
     try:
         print("Generating speech from script...")
         voices = speech_gen.list_available_voices(language_code="en-US")
         
-        # Randomly select one of the available voices
         random_voice = random.choice(voices)
         print(f"Randomly selected voice: {random_voice}")
 
         audio_path = await speech_gen.generate_speech_async(
             text=script.content,
-            voice_id=random_voice,  # Use randomly selected voice
+            voice_id=random_voice,  
             output_format="mp3"
         )
         print(f"Speech generated and saved to: {audio_path}")
@@ -52,7 +46,6 @@ async def main():
         print(f"Speech generation error: {e}")
         return
     
-    # Create video from images and audio
     try:
         print("Creating video from images and audio...")
         successful_images = [p for p in downloaded_paths if not isinstance(p, Exception)]
@@ -62,7 +55,6 @@ async def main():
         )
         print(f"Video created successfully and saved to: {video_path}")
         
-        # Upload video to S3
         try:
             s3_key = f"videos/{os.path.basename(video_path)}"
             s3_url = s3_upload.upload_file(video_path, s3_key)

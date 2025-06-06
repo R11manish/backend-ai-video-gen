@@ -34,7 +34,7 @@ class SpeechGenerator:
             Text=text,
             OutputFormat=output_format,
             VoiceId=voice_id,
-            Engine='neural'  # Use neural engine for better quality
+            Engine='neural' 
         )
         
         # Save the audio file
